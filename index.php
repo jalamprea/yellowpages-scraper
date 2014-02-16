@@ -3,11 +3,14 @@
 include('simple_html_dom/simple_html_dom.php');
 include('phpwhois-4.2.2/whois.main.php');
 
-$startPage = 1;
+$startPage = 2;
 $endPage = 2;
 
-$location = 'East Williamsburg, Brooklyn, NY';
-$search = 'Lawyers';
+$location = 'Financial District, New York, NY';
+$search = 'Financial Advisors';
+$url = 'http://www.yellowpages.com/financial-district-new-york-ny/financial-advisors';
+
+$requireEmail = true;
 
 $scanModules = array(
     'Google Analytics' => 'googleAnalytics',
@@ -19,9 +22,9 @@ $leads = array();
 $domainArray = array();
 $csv = '';
 
-$csvFilename = "csv/$search-leads.csv";
+$csvFilename = "csv/$search-leads_p$startPage-$endPage.csv";
 
-echo "Beginning yellowpages.com listing scrape\n";
+echo "Scraping yellowpages.com...\nSearch: $search\nLocation: $location\n";
 
 for ($i = $startPage; $i <= $endPage; $i++) {
     echo "\nPage $i";
@@ -31,8 +34,6 @@ for ($i = $startPage; $i <= $endPage; $i++) {
         'page' => $i,
         'q' => $search
     );
-
-    $url = 'http://www.yellowpages.com/east-williamsburg-brooklyn-ny/lawyers';
 
     $entries = scrape_page($url, $data);
 
@@ -61,6 +62,12 @@ for ($i = $startPage; $i <= $endPage; $i++) {
 
             scan_modules($scanModules, $link, $leads, $name);
         }
+
+        if ($requireEmail && count($emails) == 0) {
+            unset($leads[$name]);
+        }
+
+        printEmails($emails);
 
         $leads[$name]['Name'] = $name;
         $leads[$name]['Email Addresses'] = (
@@ -149,6 +156,15 @@ function scan_modules($scanModules, $link, &$leads, $name) {
         $leads[$name][$module] = $value;
     }
     echo "|\n" . str_pad("", (25 * count($scanModules)) + 1, '-');
+}
+
+function printEmails($emails) {
+    if ($emails && count($emails) > 0) {
+        $emailString = '| Email: ' . implode(', ', $emails) . ' ';
+        echo "\n" . str_pad("", strlen($emailString) + 1, '-') . "\n";
+        echo $emailString;
+        echo "|\n" . str_pad("", strlen($emailString) + 1, '-');
+    }
 }
 
 function array_find_emails($needle, $haystack)
