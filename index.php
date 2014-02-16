@@ -4,18 +4,22 @@ include('simple_html_dom/simple_html_dom.php');
 include('phpwhois-4.2.2/whois.main.php');
 
 $startPage = 1;
-$endPage = 50;
+$endPage = 2;
+
+$location = 'East Williamsburg, Brooklyn, NY';
+$search = 'Lawyers';
 
 $scanModules = array(
     'Google Analytics' => 'googleAnalytics',
-    'Shopify' => 'shopify',
+    //'Shopify' => 'shopify',
     'Twitter Bootstrap' => 'bootstrap'
 );
 
 $leads = array();
+$domainArray = array();
 $csv = '';
 
-$csvFilename = 'leads-with-emails.csv';
+$csvFilename = "csv/$search-leads.csv";
 
 echo "Beginning yellowpages.com listing scrape\n";
 
@@ -23,78 +27,49 @@ for ($i = $startPage; $i <= $endPage; $i++) {
     echo "\nPage $i";
 
     $data = array(
-        'g' => 'East Williamsburg, Brooklyn, NY',
+        'g' => $location,
         'page' => $i,
-        'q' => 'accountant'
+        'q' => $search
     );
 
-    $url = 'http://www.yellowpages.com/east-williamsburg-brooklyn-ny/accountant';
+    $url = 'http://www.yellowpages.com/east-williamsburg-brooklyn-ny/lawyers';
 
-    $html = str_get_html(getHTML($url, $data));
+    $entries = scrape_page($url, $data);
 
-    $links = array();
-    foreach($html->find('div.info-business-additional a.track-visit-website') as $link) {
-        $links[] = $link->href;
-    }
+    foreach($entries as $entry) {
+        list($name, $link, $moreinfo) = $entry;
 
-    $html->clear();
-    unset($html);
+        if (isset($leads[$name])) continue;
 
-    foreach($links as $link) {
-        $domain = str_ireplace('www.', '', parse_url($link, PHP_URL_HOST));
+        echo "\n$name";
 
-        if (isset($leads[$domain])) continue;
-        echo "\n$link";
+        $leads[$name] = getEmptyLead($scanModules);
 
-        $leads[$domain] = array();
+        $emails = array();
+        get_moreinfo_emails($emails, $moreinfo);
 
-        $whois = new Whois();
-        $result = @$whois->Lookup($domain);
-        $emails = array_find_emails('email', $result['rawdata']);
+        if ($link) {
+            $domain = str_ireplace('www.', '', parse_url($link, PHP_URL_HOST));
 
-        if ($emails === false) {
-            echo "...No WHOIS Email";
-            continue;
+            if (in_array($domain, $domainArray)) continue;
+
+            $domainArray[] = $domain;
+
+            get_whois_emails($emails, $domain);
+
+            $leads[$name]['Website'] = $link;
+
+            scan_modules($scanModules, $link, $leads, $name);
         }
 
-        $website = getHTML($link);
-        /*
-        $websiteHTML = str_get_html($website);
-
-        if (!$websiteHTML) continue;
-
-        $scripts = $websiteHTML->find('script');
-        $scriptSources = array();
-        foreach($scripts as $script) {
-            $source = getHTML($script->src);
-            $scriptSources[$script->src] = $source;
-        }
-
-        $scriptSources = array_filter($scriptSources);
-         */
-
-        /*
-        foreach($scriptSources as $key => $source) {
-            if (stripos($source, 'analytics.js') !== false 
-                || stripos($source, 'ga.js') !== false
-            ) {
-                $ga = 'Implemented';
-            }
-        }
-         */
-
-        $leads[$domain] = array(
-            'Website' => $link,
-            'Email Addresses' => implode(", ", array_unique($emails))
+        $leads[$name]['Name'] = $name;
+        $leads[$name]['Email Addresses'] = (
+            $emails !== false && count($emails) > 0 
+            ? implode(", ", array_unique($emails)) 
+            : null
         );
 
-        foreach ($scanModules as $name => $callback) {
-            $value = $callback($website);
-            echo "...$value";
-            $leads[$domain][$name] = $value;
-        }
-
-        $csv .= '"' . implode('","', $leads[$domain]) . "\"\n";
+        $csv .= '"' . implode('","', $leads[$name]) . "\"\n";
     }
 }
 
@@ -103,6 +78,78 @@ echo "\n";
 $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
 
 file_put_contents($csvFilename, $csv);
+
+function getEmptyLead($scanModules) {
+    $lead = array(
+        'Name' => null,
+        'Website' => null,
+        'Email Addresses' => null
+    );
+
+    foreach (array_keys($scanModules) as $module) {
+        $lead[$module] = null;
+    }
+
+    return $lead;
+}
+
+function scrape_page($url, $data) {
+    $html = str_get_html(getHTML($url, $data));
+
+    $entries = array();
+    foreach($html->find('.result-container') as $listing) { 
+        $name = $listing->find('div.business-name-container, div.srp-business-name', 0);
+        $link = $listing->find('div.info-business-additional a.track-visit-website', 0);
+        $moreinfo = $listing->find('a.track-more-info', 0);
+        $entries[] = array(
+            $name ? trim(htmlspecialchars_decode($name->plaintext)) : null,
+            $link ? $link->href : null,
+            $moreinfo ? 'http://www.yellowpages.com' . $moreinfo->href : null
+        );
+    }
+
+    $html->clear();
+    unset($html);
+
+    return $entries;
+}
+
+function get_whois_emails(&$emails, $domain) {
+    $whois = new Whois();
+    $result = @$whois->Lookup($domain);
+    $whoisemails = array_find_emails('email', $result['rawdata']);
+    if ($whoisemails && count($whoisemails) > 0)
+        $emails = array_merge($emails, $whoisemails);
+}
+
+function get_moreinfo_emails(&$emails, $moreinfo) {
+    if ($moreinfo) {
+        $source = getHTML($moreinfo);
+        $html = str_get_html($source);
+        $yellowpageEmails = array_map(
+            function($element) { return str_ireplace('mailto:', '', $element->href); },
+            $html->find('.email-business')
+        );
+
+        $html->clear();
+        unset($html);
+
+        if ($yellowpageEmails && count($yellowpageEmails) > 0)
+            $emails = array_merge($emails, $yellowpageEmails);
+    }
+}
+
+function scan_modules($scanModules, $link, &$leads, $name) {
+    $website = getHTML($link);
+
+    echo "\n" . str_pad("", (25 * count($scanModules)) + 1, '-') . "\n";
+    foreach ($scanModules as $module => $callback) {
+        $value = $callback($website);
+        echo str_pad("| $module: $value", 25);
+        $leads[$name][$module] = $value;
+    }
+    echo "|\n" . str_pad("", (25 * count($scanModules)) + 1, '-');
+}
 
 function array_find_emails($needle, $haystack)
 {
@@ -116,19 +163,7 @@ function array_find_emails($needle, $haystack)
                     function($word) { return filter_var($word, FILTER_VALIDATE_EMAIL); },
                     explode(' ', $item)
                 ),
-                function($word) {
-                    return $word !== false 
-                        && stripos($word, 'host') === false
-                        && stripos($word, 'whois') === false
-                        && stripos($word, 'domain') === false
-                        && stripos($word, 'dns') === false
-                        && stripos($word, 'no.valid.email@worldnic.com') === false
-                        && stripos($word, 'customerservice@networksolutions.com') === false
-                        && stripos($word, 'contact@myprivateregistration.com') === false
-                        && stripos($word, '@networksolutionsprivateregistration.com') === false
-                        && stripos($word, 'admin@internationaladmin.com') === false
-                        && stripos($word, 'abuse') === false;
-                }
+                'isRelevantEmail'
             );
 
             $array = array_merge($array, $emails);
@@ -136,6 +171,28 @@ function array_find_emails($needle, $haystack)
     }
 
     return count($array) > 0 ? $array : false;
+}
+
+function isRelevantEmail($email) {
+    return $email !== false 
+        && 0 === count(array_filter(array_map(
+            function($value) use ($email) {
+                return stripos($email, $value) === false;
+            },
+            array(
+                'host',
+                'whois',
+                'domain',
+                'dns',
+                'no.valid.email@worldnic.com',
+                'customerservice@networksolutions.com',
+                'contact@myprivateregistration.com',
+                'networksolutionsprivateregistration.com',
+                'admin@internationaladmin.com',
+                'contact.gandi.net',
+                'abuse'
+            )
+        )));
 }
 
 function getHTML($url, $data = null) {
