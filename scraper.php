@@ -1,0 +1,217 @@
+<?php
+
+require_once('simple_html_dom/simple_html_dom.php');
+require_once('utils.php');
+require_once('scan_modules.php');
+
+class Scraper {
+    public static function run(
+        $startPage,
+        $endPage,
+        $location,
+        $search,
+        $url,
+        $scanModules,
+        $requiredModules,
+        $requireEmails = false
+    ) {
+        $csv = '';
+        $csvFilename = "csv/$search-leads_p$startPage-$endPage.csv";
+
+        $leads = array();
+        $domainArray = array();
+
+        echo "Scraping yellowpages.com...\nSearch: $search\nLocation: $location\n";
+
+        for ($i = $startPage; $i <= $endPage; $i++) {
+            self::scrapePage(
+                $i,
+                $csv,
+                $location,
+                $search,
+                $url,
+                $leads,
+                $scanModules,
+                $requiredModules,
+                $domainArray,
+                $requireEmails
+            );
+        }
+
+        echo "\n";
+
+        $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
+
+        file_put_contents($csvFilename, $csv);
+    }
+
+    private static function getEmptyLead($scanModules) {
+        $lead = array(
+            'Name' => null,
+            'Website' => null,
+            'Email Addresses' => null
+        );
+
+        foreach (array_keys($scanModules) as $module) {
+            $lead[$module] = null;
+        }
+
+        return $lead;
+    }
+
+    private static function _scrapePage($url, $data) {
+        $html = str_get_html(getHTML($url, $data));
+
+        $entries = array();
+        foreach($html->find('.result-container') as $listing) { 
+            $name = $listing->find('div.business-name-container, div.srp-business-name', 0);
+            $link = $listing->find('div.info-business-additional a.track-visit-website', 0);
+            $moreinfo = $listing->find('a.track-more-info', 0);
+            $entries[] = array(
+                $name ? trim(htmlspecialchars_decode($name->plaintext)) : null,
+                $link ? $link->href : null,
+                $moreinfo ? 'http://www.yellowpages.com' . $moreinfo->href : null
+            );
+        }
+
+        $html->clear();
+        unset($html);
+
+        return $entries;
+    }
+
+    private static function scrapePage(
+        $i,
+        &$csv,
+        $location,
+        $search,
+        $url,
+        &$leads,
+        $scanModules,
+        $requiredModules,
+        $domainArray,
+        $requireEmails
+    ) {
+        echo "\nPage $i";
+
+        $data = array(
+            'g' => $location,
+            'page' => $i,
+            'q' => $search
+        );
+
+        $entries = self::_scrapePage($url, $data);
+
+        foreach($entries as $entry) {
+            if (self::parseEntry(
+                $csv,
+                $entry,
+                $leads,
+                $domainArray,
+                $scanModules,
+                $requiredModules,
+                $requireEmails
+            )) continue;
+        }
+    }
+
+    private static function parseEntry(
+        &$csv,
+        $entry,
+        &$leads,
+        $domainArray,
+        $scanModules,
+        $requiredModules,
+        $requireEmails
+    ) {
+        list($name, $link, $moreinfo) = $entry;
+
+        if (isset($leads[$name])) return false;
+
+        echo "\n$name";
+
+        $leads[$name] = self::getEmptyLead($scanModules);
+
+        $emails = array();
+        get_moreinfo_emails($emails, $moreinfo);
+
+        if  (!self::parseLink(
+            $link,
+            $scanModules,
+            $requiredModules,
+            $domainArray,
+            $emails,
+            $leads,
+            $name
+        )) return false;
+
+        if ($requireEmails && count($emails) <= 0) {
+            unset($leads[$name]);
+            return false;
+        }
+
+        printEmails($emails);
+
+        $leads[$name]['Name'] = $name;
+        $leads[$name]['Email Addresses'] = (
+            $emails !== false && count($emails) > 0 
+            ? implode(", ", array_unique($emails)) 
+            : null
+        );
+
+        $csv .= '"' . implode('","', $leads[$name]) . "\"\n";
+
+        return true;
+    }
+
+    private static function parseLink(
+        $link,
+        $scanModules,
+        $requiredModules,
+        $domainArray,
+        &$emails,
+        &$leads,
+        $name
+    ) {
+        if ($link) {
+            $domain = str_ireplace('www.', '', parse_url($link, PHP_URL_HOST));
+
+            if (in_array($domain, $domainArray)) return false;
+
+            $domainArray[] = $domain;
+
+            get_whois_emails($emails, $domain);
+
+            $leads[$name]['Website'] = $link;
+
+            scan_modules($scanModules, $link, $leads, $name);
+
+            if ($requiredModules && count($requiredModules) > 0) {
+                $requiredValues = array_map(
+                    function($module) use ($leads, $name) {
+                        return $leads[$name][$module];
+                    }, $requiredModules
+                );
+
+                $requiredValues = array_filter(
+                    $requiredValues,
+                    function($module) {
+                        return $module !== 'No';
+                    }
+                );
+
+                if (count($requiredModules) !== count($requiredValues)) {
+                    unset($leads[$name]);
+                    return false;
+                }
+            }
+        } else if ($requiredModules && count($requiredModules) > 0) {
+            unset($leads[$name]);
+            return false;
+        }
+
+        return true;
+    }
+}
+
+?>
