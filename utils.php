@@ -43,13 +43,15 @@ function get_moreinfo_emails(&$emails, $moreinfo) {
     if ($moreinfo) {
         $source = getHTML($moreinfo);
         $html = str_get_html($source);
-        $yellowpageEmails = array_map(
-            function($element) { return str_ireplace('mailto:', '', $element->href); },
-            $html->find('.email-business')
-        );
+        if ($html) {
+            $yellowpageEmails = array_map(
+                function($element) { return str_ireplace('mailto:', '', $element->href); },
+                $html->find('.email-business')
+            );
 
-        $html->clear();
-        unset($html);
+            $html->clear();
+            unset($html);
+        }
 
         if ($yellowpageEmails && count($yellowpageEmails) > 0)
             $emails = array_merge($emails, $yellowpageEmails);
