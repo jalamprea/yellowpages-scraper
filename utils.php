@@ -23,7 +23,7 @@ function getHTML($url, $data = null, $post = false, $cookies = false) {
     }
 
     if (!$result = curl_exec($curl)) {
-        //echo curl_error($curl) . "\n";
+        // echo curl_error($curl) . "\n";
     }
 
     curl_close($curl);
@@ -37,6 +37,56 @@ function get_whois_emails(&$emails, $domain) {
     $whoisemails = array_find_emails('email', $result['rawdata']);
     if ($whoisemails && count($whoisemails) > 0)
         $emails = array_merge($emails, $whoisemails);
+}
+
+function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo) {
+	if ($moreinfo) {
+		$source = getHTML($moreinfo);
+		$html = str_get_html($source);
+		if ($html) {
+			$yellowpageEmails = array_map(
+				function($element) { return str_ireplace('mailto:', '', $element->href); },
+				$html->find('.email-business')
+			);
+
+			$st = $html->find('.street-address');
+			$cs = $html->find('.city-state');
+            if( !empty($st) && !empty($cs) ) {
+                $address = $st[0]->innertext.' '.$cs[0]->innertext;
+            }
+
+            $full_location = $html->find('#mip-mini-map');
+            if( !empty($full_location) ) {
+                $location = array(
+                    'lat'=>$full_location[0]->getAttribute('data-latitude'),
+                    'long'=>$full_location[0]->getAttribute('data-longitude')
+                );
+            }
+            
+            $phone = $html->find('.phone');
+            if(!empty($phone)) {
+                $phone = $phone[0]->innertext;
+            } else {
+                $phone = null;
+            }
+            
+            $details = $html->find('#business-details');
+            if( !empty($details) ) {
+            	$description_node = $details[0]->find('.description');
+            	if(!empty($description_node)) {
+            		$description = $description_node[0]->innertext;
+            	} else {
+            		$description = null;
+            	}
+            }
+	
+			$html->clear();
+			unset($html);
+		}
+	
+		if (isset($yellowpageEmails) && count($yellowpageEmails) > 0)
+			$emails = array_merge($emails, $yellowpageEmails);
+	}
 }
 
 function get_moreinfo_emails(&$emails, $moreinfo) {
@@ -53,7 +103,7 @@ function get_moreinfo_emails(&$emails, $moreinfo) {
             unset($html);
         }
 
-        if ($yellowpageEmails && count($yellowpageEmails) > 0)
+        if (isset($yellowpageEmails) && count($yellowpageEmails) > 0)
             $emails = array_merge($emails, $yellowpageEmails);
     }
 }

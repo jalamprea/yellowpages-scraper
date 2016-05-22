@@ -8,7 +8,7 @@ class YellowpagesScraper {
     public static function run() {
         $startPage = 1;
         //$startPage = 169;
-        $endPage = 198;
+        $endPage = 1;
 
         /*
         $location = 'Financial District, New York, NY';
@@ -17,20 +17,14 @@ class YellowpagesScraper {
          */
         $name     = 'yellowpages.com';
         $location = 'New York, NY';
-        $search   = 'Jewelry Stores';
-        $url      = 'http://www.yellowpages.com/new-york-ny/jewelry-stores';
+        $search   = 'electricians';
+        $url      = 'http://www.yellowpages.com/new-york-ny/electricians/';
 
-        $scanModules = array(
-            //'Google Analytics' => 'googleAnalytics',
-            'Shopify' => 'shopify'
-            //'Twitter Bootstrap' => 'bootstrap'
-        );
+        $scanModules = array( );
 
-        $requiredModules = array(
-            //'Shopify'
-        );
+        $requiredModules = array( );
 
-        $requireEmails = false;
+        $requireEmails = true;
 
         Scraper::run(
             $name,
@@ -47,18 +41,39 @@ class YellowpagesScraper {
     }
 
     public static function scrapePage($url, $data) {
+        echo " ".print_r($url, true)."\n";
+
         $html = str_get_html(getHTML($url, $data));
 
         $entries = array();
-        foreach($html->find('.result') as $listing) { 
-            $name = $listing->find('a.business-name span', 0);
-            $link = $listing->find('ul.links a.track-visit-website', 0);
-            $moreinfo = $listing->find('ul.links a.track-more-info', 0);
-            $entries[] = array(
-                $name ? trim(htmlspecialchars_decode($name->plaintext)) : null,
-                $link ? $link->href : null,
-                $moreinfo ? 'http://www.yellowpages.com' . $moreinfo->href : null
-            );
+        $res = $html->find('.result');
+        // $res = $html->find('#listings');
+
+        if( empty($res) ) {
+            $res = $html->find('.search-results');
+        }
+        foreach($res as $listing) {
+            $name = $listing->find('a.business-name', 0);
+            if($name)
+                $name = strip_tags($name->innertext);
+            else {
+                unset($listing);
+                continue;
+            }
+            
+            $link = $listing->find('.links a.track-visit-website', 0);
+            $link = ($link && $link->href) ? $link : $listing->find('.links a.website-link', 0);
+            
+            $moreinfo = $listing->find('.links a.track-more-info', 0);
+            $moreinfo = $moreinfo ? $moreinfo : $listing->find('.links a.more-info-link', 0);
+
+            if($link && $link->href) {
+                $entries[] = array(
+                    $name ? trim(htmlspecialchars_decode($name)) : null,
+                    $link ? $link->href : null,
+                    $moreinfo ? 'http://www.yellowpages.com' . $moreinfo->href : null
+                );
+            }
         }
 
         $html->clear();
