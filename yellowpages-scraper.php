@@ -6,8 +6,8 @@ require_once('utils.php');
 
 class YellowpagesScraper {
     public static function run() {
-        $startPage = isset($_REQUEST['from']) ? $_REQUEST['from'] : 169;
-        $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 169;
+        $startPage = isset($_REQUEST['from']) ? $_REQUEST['from'] : 1;
+        $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 1;
 
         /*
         $location = 'Financial District, New York, NY';
@@ -15,9 +15,9 @@ class YellowpagesScraper {
         $url = 'http://www.yellowpages.com/financial-district-new-york-ny/financial-advisors';
          */
         $name     = 'yellowpages.com';
-        $location = 'New York, NY';
-        $search   = 'electricians';
-        $url      = 'http://www.yellowpages.com/new-york-ny/electricians/';
+        $location = isset($_REQUEST['location']) ? $_REQUEST['location'] : 'NY';
+        $search   = isset($_REQUEST['search']) ? $_REQUEST['search'] : 'electricians';
+        $url      = 'http://www.yellowpages.com/'.$location.'/'.$search.'/';
 
         $scanModules = array( );
         $requiredModules = array( );

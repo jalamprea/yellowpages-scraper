@@ -136,8 +136,8 @@ class Scraper {
         $requireEmails
     ) {
         list($name, $link, $moreinfo) = $entry;
-        // echo "<pre>More: ".print_r($moreinfo, true)."</pre>";
-        if( empty(trim($name)) ) {
+        $name = $name ? trim($name) : null;
+        if( empty($name) ) {
             return false;
         }
 
