@@ -22,7 +22,7 @@ class Scraper {
         $domainArray = array();
         $scannedArray = array();
 
-        echo "Scraping $name...\nSearch: $search\nLocation: $location\n";
+        echo "<br>Scraping $name...\n<br>Search: $search\n<br>Location: $location\n<br>";
 
         $threads = array();
         for ($i = $startPage; $i <= $endPage; $i++) {
@@ -50,7 +50,7 @@ class Scraper {
             // $t->join();
         }
         //echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
-        echo "\n".count($leads)." leads found!";
+        echo "\n<br>".count($leads)." valid leads found!";
 
         if ($leads && count($leads) > 0) {
             //$csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;

@@ -6,9 +6,8 @@ require_once('utils.php');
 
 class YellowpagesScraper {
     public static function run() {
-        $startPage = 1;
-        //$startPage = 169;
-        $endPage = 6;
+        $startPage = isset($_REQUEST['from']) ? $_REQUEST['from'] : 169;
+        $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 169;
 
         /*
         $location = 'Financial District, New York, NY';
@@ -39,7 +38,7 @@ class YellowpagesScraper {
     }
 
     public static function scrapePage($url, $data) {
-        echo " ".print_r($url, true)."\n";
+        echo " <br>".print_r($url, true)."\n<br>";
 
         $html = str_get_html(getHTML($url, $data));
 
