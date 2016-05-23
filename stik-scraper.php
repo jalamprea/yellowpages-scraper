@@ -6,7 +6,7 @@ class StikScraper {
     public static function run() {
         $startPage = 1;
         //$startPage = 169;
-        $endPage = 198;
+        $endPage = 1;
 
         /*
         $location = 'Financial District, New York, NY';
@@ -18,11 +18,13 @@ class StikScraper {
         $search = 'Jewelry Stores';
          */
         $name = 'stik.com';
-        $url = 'http://www.stik.com/financial-planning/new-york';
+        $url = 'http://www.stik.com/home-services-electrical';
+        $search = 'home-services-electrical';
+        $location = 'USA';
 
         $scanModules = array(
-            'Google Analytics' => 'googleAnalytics',
-            'Shopify' => 'shopify'
+            //'Google Analytics' => 'googleAnalytics',
+            //'Shopify' => 'shopify'
             //'Twitter Bootstrap' => 'bootstrap'
         );
 

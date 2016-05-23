@@ -8,7 +8,7 @@ class YellowpagesScraper {
     public static function run() {
         $startPage = 1;
         //$startPage = 169;
-        $endPage = 1;
+        $endPage = 6;
 
         /*
         $location = 'Financial District, New York, NY';
@@ -21,10 +21,8 @@ class YellowpagesScraper {
         $url      = 'http://www.yellowpages.com/new-york-ny/electricians/';
 
         $scanModules = array( );
-
         $requiredModules = array( );
-
-        $requireEmails = true;
+        $requireEmails = false;
 
         Scraper::run(
             $name,
@@ -78,9 +76,86 @@ class YellowpagesScraper {
 
         $html->clear();
         unset($html);
-
-        return $entries;
+        
+		echo "Possible leads found: ".count($entries);
+        
+		return $entries;
+    }
+    
+    
+    
+    /**
+     * Find the street address in a HTML DOM Node
+     * extracted from the more_info page of the lead.
+     *
+     * @param simple_html_dom_node $rootNode
+     */
+    public static function get_address($rootNode) {
+    	$st = $rootNode->find('.street-address');
+    	$cs = $rootNode->find('.city-state');
+    
+    	if( !empty($st) && !empty($cs) ) {
+    		return $st[0]->innertext.' '.$cs[0]->innertext;
+    	}
+    
+    	return null;
+    }
+    
+    
+    /**
+     * Find and extract the Latitude and Longitude of the map
+     *
+     * @param simple_html_dom_node $rootNode
+     * @return array(lat, long)[] | NULL
+     */
+    public static function get_location($rootNode) {
+    	$locationData = $rootNode->find('#mip-mini-map');
+    	if( !empty($locationData) ) {
+    		return array(
+    				'lat'=>$locationData[0]->getAttribute('data-latitude'),
+    				'long'=>$locationData[0]->getAttribute('data-longitude')
+    		);
+    	}
+    
+    	return null;
+    }
+    
+    
+    /**
+     *
+     * @param simple_html_dom_node $rootNode
+     * @return String phone if it's found, NULL if not.
+     */
+    public static function get_phone($rootNode) {
+    	$phone = $rootNode->find('.phone');
+    	if(!empty($phone)) {
+    		return $phone[0]->innertext;
+    	}
+    
+    	return null;
+    }
+    
+    
+    /**
+     *
+     * @param simple_html_dom_node $rootNode
+     * @return String description if it's found. NULL if not.
+     */
+    public static function get_description($rootNode) {
+    	$details = $rootNode->find('#business-details');
+    	if( !empty($details) ) {
+    		$descriptions = $details[0]->find('.description');
+    		foreach ($descriptions as $desc_node) {
+    			if( count($desc_node->children())===0 ) {
+    				return $desc_node->innertext;
+    			} else {
+    				if( $desc_node->children(0)->tag!=='a' ) {
+    					return strip_tags($desc_node->innertext);
+    				}
+    			}
+    		}
+    	}
+    
+    	return null;
     }
 }
-
-?>

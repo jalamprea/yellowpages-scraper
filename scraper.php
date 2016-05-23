@@ -1,8 +1,6 @@
 <?php
-
 require_once('simple_html_dom/simple_html_dom.php');
 require_once('utils.php');
-require_once('scan_modules.php');
 
 class Scraper {
     public static function run(
@@ -51,8 +49,8 @@ class Scraper {
         foreach ($threads as $t) {
             // $t->join();
         }
-        echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
-        print_r($leads);
+        //echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
+        echo "\n".count($leads)." leads found!";
 
         if ($leads && count($leads) > 0) {
             //$csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
@@ -63,15 +61,10 @@ class Scraper {
 
     private static function getEmptyLead($scanModules) {
         $lead = array(
-            'Name' => null,
-            'Website' => null,
-            'Email Addresses' => null
+            'name' => null,
+            'website' => null,
+            'email' => null
         );
-
-        //die( "<pre>".print_r($scanModules, true)."</pre>" );
-        foreach (array_keys( (array)$scanModules) as $module) {
-            $lead[$module] = null;
-        }
 
         return $lead;
     }
@@ -154,7 +147,7 @@ class Scraper {
 
         
         $leads[$name] = self::getEmptyLead($scanModules);
-        $scannedArray[$name] = self::getEmptyLead($scanModules);
+        // $scannedArray[$name] = self::getEmptyLead($scanModules);
 
         $emails = array();
         $location = array();
@@ -163,10 +156,6 @@ class Scraper {
         $description = '';
         //get_moreinfo_emails($emails, $moreinfo);
         get_more_info_lead($emails, $address, $location, $phone, $description, $moreinfo);
-        /*if(empty($emails)) {
-        	unset($leads[$name]);
-        	return false;
-        }*/
 
         if  (!self::parseLink(
             $link,
@@ -188,8 +177,8 @@ class Scraper {
         
         // printEmails($emails);
 
-        $leads[$name]['Name'] = $name;
-        $leads[$name]['Email Addresses'] = (
+        $leads[$name]['name'] = $name;
+        $leads[$name]['email'] = (
             $emails !== false && count($emails) > 0 
             ? implode(", ", array_unique($emails)) 
             : null
@@ -206,10 +195,6 @@ class Scraper {
             return false;
         }
         
-        
-
-        //echo "\nName: ".$name." - ".$leads[$name]['Email Addresses'];
-
         echo( "<pre>".print_r($leads[$name], true)."</pre>" );
         //$csv .= '"' . implode('","', $leads[$name]) . "\"\n";
 
@@ -234,7 +219,7 @@ class Scraper {
 
             get_whois_emails($emails, $domain);
 
-            $leads[$name]['Website'] = $link;
+            $leads[$name]['website'] = $link;
 
             //scan_modules($scanModules, $link, $leads, $name);
 
@@ -261,5 +246,3 @@ class Scraper {
         return true;
     }
 }
-
-?>

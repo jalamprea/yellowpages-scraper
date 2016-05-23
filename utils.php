@@ -1,6 +1,6 @@
 <?php
 
-include('phpwhois-4.2.2/whois.main.php');
+require_once 'phpwhois-4.2.2/whois.main.php';
 
 function getHTML($url, $data = null, $post = false, $cookies = false) {
     $curl = curl_init();
@@ -39,86 +39,7 @@ function get_whois_emails(&$emails, $domain) {
         $emails = array_merge($emails, $whoisemails);
 }
 
-function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo) {
-	if ($moreinfo) {
-		$source = getHTML($moreinfo);
-		$html = str_get_html($source);
-		if ($html) {
-			$yellowpageEmails = array_map(
-				function($element) { return str_ireplace('mailto:', '', $element->href); },
-				$html->find('.email-business')
-			);
-
-			$st = $html->find('.street-address');
-			$cs = $html->find('.city-state');
-            if( !empty($st) && !empty($cs) ) {
-                $address = $st[0]->innertext.' '.$cs[0]->innertext;
-            }
-
-            $full_location = $html->find('#mip-mini-map');
-            if( !empty($full_location) ) {
-                $location = array(
-                    'lat'=>$full_location[0]->getAttribute('data-latitude'),
-                    'long'=>$full_location[0]->getAttribute('data-longitude')
-                );
-            }
-            
-            $phone = $html->find('.phone');
-            if(!empty($phone)) {
-                $phone = $phone[0]->innertext;
-            } else {
-                $phone = null;
-            }
-            
-            $details = $html->find('#business-details');
-            if( !empty($details) ) {
-            	$description_node = $details[0]->find('.description');
-            	if(!empty($description_node)) {
-            		$description = $description_node[0]->innertext;
-            	} else {
-            		$description = null;
-            	}
-            }
-	
-			$html->clear();
-			unset($html);
-		}
-	
-		if (isset($yellowpageEmails) && count($yellowpageEmails) > 0)
-			$emails = array_merge($emails, $yellowpageEmails);
-	}
-}
-
-function get_moreinfo_emails(&$emails, $moreinfo) {
-    if ($moreinfo) {
-        $source = getHTML($moreinfo);
-        $html = str_get_html($source);
-        if ($html) {
-            $yellowpageEmails = array_map(
-                function($element) { return str_ireplace('mailto:', '', $element->href); },
-                $html->find('.email-business')
-            );
-
-            $html->clear();
-            unset($html);
-        }
-
-        if (isset($yellowpageEmails) && count($yellowpageEmails) > 0)
-            $emails = array_merge($emails, $yellowpageEmails);
-    }
-}
-
-function printEmails($emails) {
-    if ($emails && count($emails) > 0) {
-        $emailString = '| Email: ' . implode(', ', $emails) . ' ';
-        echo "\n" . str_pad("", strlen($emailString) + 1, '-') . "\n";
-        echo $emailString;
-        echo "|\n" . str_pad("", strlen($emailString) + 1, '-');
-    }
-}
-
-function array_find_emails($needle, $haystack)
-{
+function array_find_emails($needle, $haystack) {
     $array = array();
 
     foreach ($haystack as $item)
@@ -161,4 +82,26 @@ function isRelevantEmail($email) {
         )));
 }
 
-?>
+function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo) {
+	if ($moreinfo) {
+		$source = getHTML($moreinfo);
+		$html = str_get_html($source);
+		if ($html) {
+			$yellowpageEmails = array_map(
+				function($element) { return str_ireplace('mailto:', '', $element->href); },
+				$html->find('.email-business')
+			);
+
+			$address = YellowpagesScraper::get_address($html);
+			$location = YellowpagesScraper::get_location($html);
+			$phone = YellowpagesScraper::get_phone($html);
+			$description = YellowpagesScraper::get_description($html);
+
+			$html->clear();
+			unset($html);
+		}
+
+		if (isset($yellowpageEmails) && count($yellowpageEmails) > 0)
+			$emails = array_merge($emails, $yellowpageEmails);
+	}
+}
