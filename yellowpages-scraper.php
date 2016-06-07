@@ -15,32 +15,29 @@ class YellowpagesScraper {
         $url = 'http://www.yellowpages.com/financial-district-new-york-ny/financial-advisors';
          */
         $name     = 'yellowpages.com';
-        $location = isset($_REQUEST['location']) ? $_REQUEST['location'] : 'NY';
+        $location = isset($_REQUEST['location']) ? $_REQUEST['location'] : 'alaska';
         $search   = isset($_REQUEST['search']) ? $_REQUEST['search'] : 'electricians';
         $url      = 'http://www.yellowpages.com/'.$location.'/'.$search.'/';
 
-        $scanModules = array( );
-        $requiredModules = array( );
+        $scrapeClass = 'YellowpagesScraper';
         $requireEmails = false;
 
         Scraper::run(
             $name,
-            array('YellowpagesScraper', 'scrapePage'),
+            $scrapeClass,
             $startPage,
             $endPage,
             $location,
             $search,
             $url,
-            $scanModules,
-            $requiredModules,
             $requireEmails
         );
     }
 
     public static function scrapePage($url, $data) {
-        echo " <br>".print_r($url, true)."\n<br>";
+        echo "\n<br>URL:".print_r($url, true)."\n<br>";
 
-        $html = str_get_html(getHTML($url, $data));
+        $html = str_get_html(Utils\getHTML($url, $data));
 
         $entries = array();
         $res = $html->find('.result');

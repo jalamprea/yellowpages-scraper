@@ -1,18 +1,17 @@
 <?php
+
 require_once('simple_html_dom/simple_html_dom.php');
 require_once('utils.php');
 
 class Scraper {
     public static function run(
         $name,
-        $scrapePage,
+        $scrapeClass,
         $startPage,
         $endPage,
         $location,
         $search,
         $url,
-        $scanModules,
-        $requiredModules,
         $requireEmails = false
     ) {
         $csv = '';
@@ -27,7 +26,7 @@ class Scraper {
         $threads = array();
         for ($i = $startPage; $i <= $endPage; $i++) {
             $t = self::scrapePage(
-                $scrapePage,
+                $scrapeClass,
                 $i,
                 $csv,
                 $location,
@@ -35,8 +34,6 @@ class Scraper {
                 $url,
                 $leads,
                 $scannedArray,
-                $scanModules,
-                $requiredModules,
                 $domainArray,
                 $requireEmails
             );
@@ -46,10 +43,12 @@ class Scraper {
         echo "\n";
 
         // wait for all threads
-        foreach ($threads as $t) {
-            // $t->join();
+        /*foreach ($threads as $t) {
+            $t->join();
         }
-        //echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
+        echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
+        */
+        
         echo "\n<br>".count($leads)." valid leads found!";
 
         if ($leads && count($leads) > 0) {
@@ -59,7 +58,7 @@ class Scraper {
         // file_put_contents($csvFilename, $csv);
     }
 
-    private static function getEmptyLead($scanModules) {
+    private static function getEmptyLead() {
         $lead = array(
             'name' => null,
             'website' => null,
@@ -70,7 +69,7 @@ class Scraper {
     }
 
     private static function scrapePage(
-        $scrapePage,
+        $scrapeClass,
         $i,
         &$csv,
         $location,
@@ -78,28 +77,25 @@ class Scraper {
         $url,
         &$leads,
         &$scannedArray,
-        $scanModules,
-        $requiredModules,
         $domainArray,
         $requireEmails
     ) {
     	
-    	echo "\nPage $i";
+    	echo "Page $i";
     	$data = array(
     			'g' => $location,
     			'page' => $i,
     			'q' => $search
     	);
-    	$entries = call_user_func($scrapePage, $url, $data);
+    	$entries = call_user_func(array($scrapeClass, 'scrapePage'), $url, $data);
     	foreach($entries as $entry) {
     		if (self::parseEntry(
+                    $scrapeClass,
     				$csv,
     				$entry,
     				$leads,
     				$scannedArray,
     				$domainArray,
-    				$scanModules,
-    				$requiredModules,
     				$requireEmails
     				)) continue;
     	}
@@ -126,13 +122,12 @@ class Scraper {
     }
 
     public static function parseEntry(
+        $scrapeClass,
         &$csv,
         $entry,
         &$leads,
         &$scannedArray,
         $domainArray,
-        $scanModules,
-        $requiredModules,
         $requireEmails
     ) {
         list($name, $link, $moreinfo) = $entry;
@@ -141,13 +136,11 @@ class Scraper {
             return false;
         }
 
-        if (isset($scannedArray[$name]) 
-            || (!$link 
-            && $requiredModules && count($requiredModules > 0))) return false;
+        if (isset($scannedArray[$name]) || (!$link )) return false;
 
         
-        $leads[$name] = self::getEmptyLead($scanModules);
-        // $scannedArray[$name] = self::getEmptyLead($scanModules);
+        $leads[$name] = self::getEmptyLead();
+        // $scannedArray[$name] = self::getEmptyLead();
 
         $emails = array();
         $location = array();
@@ -155,12 +148,10 @@ class Scraper {
         $phone = '';
         $description = '';
         //get_moreinfo_emails($emails, $moreinfo);
-        get_more_info_lead($emails, $address, $location, $phone, $description, $moreinfo);
+        Utils\get_more_info_lead($emails, $address, $location, $phone, $description, $moreinfo, $scrapeClass);
 
         if  (!self::parseLink(
             $link,
-            $scanModules,
-            $requiredModules,
             $domainArray,
             $emails,
             $leads,
@@ -203,8 +194,6 @@ class Scraper {
 
     private static function parseLink(
         $link,
-        $scanModules,
-        $requiredModules,
         $domainArray,
         &$emails,
         &$leads,
@@ -217,13 +206,13 @@ class Scraper {
 
             $domainArray[] = $domain;
 
-            get_whois_emails($emails, $domain);
+            Utils\get_whois_emails($emails, $domain);
 
             $leads[$name]['website'] = $link;
 
             //scan_modules($scanModules, $link, $leads, $name);
 
-            if ($requiredModules && count($requiredModules) > 0) {
+            /*if ($requiredModules && count($requiredModules) > 0) {
                 $requiredValues = array_map(
                     function($module) use ($leads, $name) {
                         return $leads[$name][$module];
@@ -240,7 +229,7 @@ class Scraper {
                 if (count($requiredModules) !== count($requiredValues)) {
                     return false;
                 }
-            }
+            }*/
         }
 
         return true;

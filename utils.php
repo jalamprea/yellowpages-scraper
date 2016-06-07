@@ -1,4 +1,5 @@
 <?php
+namespace Utils;
 
 require_once 'phpwhois-4.2.2/whois.main.php';
 
@@ -32,7 +33,7 @@ function getHTML($url, $data = null, $post = false, $cookies = false) {
 }
 
 function get_whois_emails(&$emails, $domain) {
-    $whois = new Whois();
+    $whois = new \Whois();
     $result = @$whois->Lookup($domain);
     $whoisemails = array_find_emails('email', $result['rawdata']);
     if ($whoisemails && count($whoisemails) > 0)
@@ -50,7 +51,7 @@ function array_find_emails($needle, $haystack) {
                     function($word) { return filter_var($word, FILTER_VALIDATE_EMAIL); },
                     explode(' ', $item)
                 ),
-                'isRelevantEmail'
+                'Utils\isRelevantEmail'
             );
 
             $array = array_merge($array, $emails);
@@ -82,7 +83,7 @@ function isRelevantEmail($email) {
         )));
 }
 
-function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo) {
+function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo, $scrapeClass) {
 	if ($moreinfo) {
 		$source = getHTML($moreinfo);
 		$html = str_get_html($source);
@@ -92,10 +93,10 @@ function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$descript
 				$html->find('.email-business')
 			);
 
-			$address = YellowpagesScraper::get_address($html);
-			$location = YellowpagesScraper::get_location($html);
-			$phone = YellowpagesScraper::get_phone($html);
-			$description = YellowpagesScraper::get_description($html);
+			$address = call_user_func( array($scrapeClass, 'get_address'), $html);
+			$location = call_user_func( array($scrapeClass, 'get_location'), $html);
+			$phone = call_user_func( array($scrapeClass, 'get_phone'), $html);
+			$description = call_user_func( array($scrapeClass, 'get_description'), $html);
 
 			$html->clear();
 			unset($html);
