@@ -15,13 +15,13 @@ class Scraper {
         $requireEmails = false
     ) {
         $csv = '';
-        $csvFilename = "csv/$search-leads_p$startPage-$endPage.csv";
+        $csvFilename = "scraper-".$location."-".$search."-P".$startPage."-".$endPage;
 
         $leads = array();
         $domainArray = array();
         $scannedArray = array();
 
-        echo "<br>Scraping $name...\n<br>Search: $search\n<br>Location: $location\n<br>";
+        Utils\print_out("<br>Scraping $name...\n<br>Search: $search\n<br>Location: $location\n<br>");
 
         $threads = array();
         for ($i = $startPage; $i <= $endPage; $i++) {
@@ -40,7 +40,7 @@ class Scraper {
             $threads[] = $t;
         }
 
-        echo "\n";
+        Utils\print_out("\n");
 
         // wait for all threads
         /*foreach ($threads as $t) {
@@ -49,13 +49,22 @@ class Scraper {
         echo "\n".print_r('THREADS FINALIZED!!', true)."\n";
         */
         
-        echo "\n<br>".count($leads)." valid leads found!";
+        Utils\print_out("\n<br>".count($leads)." valid leads found!");
 
-        if ($leads && count($leads) > 0) {
-            //$csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
+        if( defined('AJAX_QUERY') ) {
+            header('Content-type: application/json');
+            $json = json_encode($leads);
+            echo $json;
+
+            file_put_contents($csvFilename.".json", $json, LOCK_EX);
         }
 
-        // file_put_contents($csvFilename, $csv);
+        if ($leads && count($leads) > 0) {
+            $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
+        }
+
+        //file_put_contents($csvFilename, $csv);
+        file_put_contents($csvFilename.".csv", $csv, LOCK_EX);
     }
 
     private static function getEmptyLead() {
@@ -81,7 +90,7 @@ class Scraper {
         $requireEmails
     ) {
     	
-    	echo "Page $i";
+    	Utils\print_out("Page ".$i);
     	$data = array(
     			'g' => $location,
     			'page' => $i,
@@ -186,8 +195,8 @@ class Scraper {
             return false;
         }
         
-        echo( "<pre>".print_r($leads[$name], true)."</pre>" );
-        //$csv .= '"' . implode('","', $leads[$name]) . "\"\n";
+        Utils\print_out( "<pre>".print_r($leads[$name], true)."</pre>" );
+        $csv .= '"' . implode('","', $leads[$name]) . "\"\n";
 
         return true;
     }
@@ -209,27 +218,6 @@ class Scraper {
             Utils\get_whois_emails($emails, $domain);
 
             $leads[$name]['website'] = $link;
-
-            //scan_modules($scanModules, $link, $leads, $name);
-
-            /*if ($requiredModules && count($requiredModules) > 0) {
-                $requiredValues = array_map(
-                    function($module) use ($leads, $name) {
-                        return $leads[$name][$module];
-                    }, $requiredModules
-                );
-
-                $requiredValues = array_filter(
-                    $requiredValues,
-                    function($module) {
-                        return $module !== 'No';
-                    }
-                );
-
-                if (count($requiredModules) !== count($requiredValues)) {
-                    return false;
-                }
-            }*/
         }
 
         return true;

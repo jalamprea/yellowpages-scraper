@@ -6,9 +6,7 @@ require_once('utils.php');
 
 class YellowpagesScraper {
     public static function run() {
-        $startPage = isset($_REQUEST['from']) ? $_REQUEST['from'] : 1;
-        $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 1;
-
+        
         /*
         $location = 'Financial District, New York, NY';
         $search = 'Financial Advisors';
@@ -19,23 +17,53 @@ class YellowpagesScraper {
         $search   = isset($_REQUEST['search']) ? $_REQUEST['search'] : 'electricians';
         $url      = 'http://www.yellowpages.com/'.$location.'/'.$search.'/';
 
-        $scrapeClass = 'YellowpagesScraper';
-        $requireEmails = false;
+        $startPage = isset($_REQUEST['from']) ? $_REQUEST['from'] : 1;
+        $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 1;
 
-        Scraper::run(
-            $name,
-            $scrapeClass,
-            $startPage,
-            $endPage,
-            $location,
-            $search,
-            $url,
-            $requireEmails
-        );
+
+        $dataFileName = "scraper-".$location."-".$search.".txt";
+        $dataFileContent = null;
+        if (!file_exists($dataFileName) ){
+            $data = "keyword:".$search."\n";
+            $data.= "location:".$location."\n";
+            $data.= "start:".$startPage."\n";
+            $data.= "end:".$endPage."\n";
+            $data.= "json:scraper-".$location."-".$search."-P".$startPage."-".$endPage.".json";
+
+            file_put_contents($dataFileName, $data, LOCK_EX);
+
+            $scrapeClass = 'YellowpagesScraper';
+            $requireEmails = false;
+
+            Scraper::run(
+                $name,
+                $scrapeClass,
+                $startPage,
+                $endPage,
+                $location,
+                $search,
+                $url,
+                $requireEmails
+            );
+        } else {
+            //$dataFileContent = file_get_contents($dataFileName);
+            $jsonFile = "scraper-".$location."-".$search."-P".$startPage."-".$endPage.".json";
+            $jsonContent = file_get_contents($jsonFile);
+            header('Content-type: application/json');
+            echo $jsonContent;
+            
+            //Utils\print_out("<pre>".print_r($jsonContent, true)."</pre>");
+            return false;
+        }
+    }
+
+    private static function startDataFile($data) {
+
     }
 
     public static function scrapePage($url, $data) {
-        echo "\n<br>URL:".print_r($url, true)."\n<br>";
+
+        Utils\print_out("\n<br>URL:".print_r($url, true)."\n<br>");
 
         $html = str_get_html(Utils\getHTML($url, $data));
 
@@ -73,7 +101,7 @@ class YellowpagesScraper {
         $html->clear();
         unset($html);
         
-		echo "Possible leads found: ".count($entries);
+		Utils\print_out( "Possible leads found: ".count($entries) );
         
 		return $entries;
     }

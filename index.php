@@ -3,6 +3,10 @@
 require_once('yellowpages-scraper.php');
 ///require_once('stik-scraper.php');
 
+if( isset($_REQUEST['ajax']) ) {
+	define('AJAX_QUERY', 1);
+}
+
 YellowpagesScraper::run();
 // StikScraper::run();
 ?>

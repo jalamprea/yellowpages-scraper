@@ -106,3 +106,10 @@ function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$descript
 			$emails = array_merge($emails, $yellowpageEmails);
 	}
 }
+
+
+function print_out($message) {
+    if(!defined('AJAX_QUERY')) {
+        echo $message;
+    }
+}
