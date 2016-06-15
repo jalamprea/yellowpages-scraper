@@ -1,4 +1,5 @@
 <?php
+set_time_limit(0);
 
 require_once('scraper.php');
 require_once('simple_html_dom/simple_html_dom.php');
@@ -48,24 +49,30 @@ class YellowpagesScraper {
         } else {
             //$dataFileContent = file_get_contents($dataFileName);
             $jsonFile = "scraper-".$location."-".$search."-P".$startPage."-".$endPage.".json";
-            $jsonContent = file_get_contents($jsonFile);
-            header('Content-type: application/json');
-            echo $jsonContent;
+            if(file_exists($jsonFile)) {
+                $jsonContent = file_get_contents($jsonFile);
+                header('Content-type: application/json');
+                echo $jsonContent;
+            } else {
+                echo json_encode(array("error"=>"JSON File not generated!"));
+            }
             
             //Utils\print_out("<pre>".print_r($jsonContent, true)."</pre>");
             return false;
         }
     }
 
-    private static function startDataFile($data) {
 
-    }
 
     public static function scrapePage($url, $data) {
 
         Utils\print_out("\n<br>URL:".print_r($url, true)."\n<br>");
 
         $html = str_get_html(Utils\getHTML($url, $data));
+        if(!$html) {
+            //throw new Exception("HTML Node not generated on ".$url);
+            return null;
+        }
 
         $entries = array();
         $res = $html->find('.result');

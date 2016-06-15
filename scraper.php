@@ -37,7 +37,7 @@ class Scraper {
                 $domainArray,
                 $requireEmails
             );
-            $threads[] = $t;
+            // $threads[] = $t;
         }
 
         Utils\print_out("\n");
@@ -60,11 +60,10 @@ class Scraper {
         }
 
         if ($leads && count($leads) > 0) {
-            $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
+            // $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
         }
 
-        //file_put_contents($csvFilename, $csv);
-        file_put_contents($csvFilename.".csv", $csv, LOCK_EX);
+        // file_put_contents($csvFilename.".csv", $csv, LOCK_EX);
     }
 
     private static function getEmptyLead() {
@@ -97,17 +96,20 @@ class Scraper {
     			'q' => $search
     	);
     	$entries = call_user_func(array($scrapeClass, 'scrapePage'), $url, $data);
-    	foreach($entries as $entry) {
-    		if (self::parseEntry(
-                    $scrapeClass,
-    				$csv,
-    				$entry,
-    				$leads,
-    				$scannedArray,
-    				$domainArray,
-    				$requireEmails
-    				)) continue;
-    	}
+        if($entries!==null) {
+            foreach($entries as $entry) {
+                if (self::parseEntry(
+                        $scrapeClass,
+                        $csv,
+                        $entry,
+                        $leads,
+                        $scannedArray,
+                        $domainArray,
+                        $requireEmails
+                        )) continue;
+            }
+        }
+    	
         
         //start the thread...
         /*$thread = new ThreadScraper();
@@ -196,7 +198,7 @@ class Scraper {
         }
         
         Utils\print_out( "<pre>".print_r($leads[$name], true)."</pre>" );
-        $csv .= '"' . implode('","', $leads[$name]) . "\"\n";
+        // $csv .= '"' . implode('","', $leads[$name]) . "\"\n";
 
         return true;
     }

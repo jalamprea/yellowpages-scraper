@@ -5,8 +5,13 @@ require_once('yellowpages-scraper.php');
 
 if( isset($_REQUEST['ajax']) ) {
 	define('AJAX_QUERY', 1);
+} else {
+	echo "Memory: ".memory_get_usage() . "\n";
 }
 
 YellowpagesScraper::run();
 // StikScraper::run();
+
+if( !isset($_REQUEST['ajax']) ) 
+	echo "Memory: ".memory_get_usage() . "\n";
 ?>
