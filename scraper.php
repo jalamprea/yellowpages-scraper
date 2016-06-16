@@ -51,13 +51,13 @@ class Scraper {
         
         Utils\print_out("\n<br>".count($leads)." valid leads found!");
 
-        if( defined('AJAX_QUERY') ) {
+        //if( defined('AJAX_QUERY') ) {
             header('Content-type: application/json');
             $json = json_encode($leads);
             echo $json;
 
             file_put_contents($csvFilename.".json", $json, LOCK_EX);
-        }
+        //}
 
         if ($leads && count($leads) > 0) {
             // $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
@@ -158,8 +158,8 @@ class Scraper {
         $address = '';
         $phone = '';
         $description = '';
-        //get_moreinfo_emails($emails, $moreinfo);
-        Utils\get_more_info_lead($emails, $address, $location, $phone, $description, $moreinfo, $scrapeClass);
+        $categories = array();
+        Utils\get_more_info_lead($emails, $address, $location, $phone, $description, $categories, $moreinfo, $scrapeClass);
 
         if  (!self::parseLink(
             $link,
@@ -178,17 +178,6 @@ class Scraper {
         }
         
         // printEmails($emails);
-
-        $leads[$name]['name'] = $name;
-        $leads[$name]['email'] = (
-            $emails !== false && count($emails) > 0 
-            ? implode(", ", array_unique($emails)) 
-            : null
-        );
-
-        $leads[$name]['description'] = $description;
-        $leads[$name]['address'] = $address;
-        $leads[$name]['phone'] = $phone;
         if(isset($location['lat'])) {
             $leads[$name]['latitude'] = $location['lat'];
             $leads[$name]['longitude'] = $location['long'];    
@@ -196,6 +185,17 @@ class Scraper {
             unset($leads[$name]);
             return false;
         }
+        $leads[$name]['name'] = $name;
+        $leads[$name]['email'] = (
+        		$emails !== false && count($emails) > 0
+        		? implode(", ", array_unique($emails))
+        		: null
+        		);
+        
+        $leads[$name]['description'] = $description;
+        $leads[$name]['address'] = $address;
+        $leads[$name]['phone'] = $phone;
+        $leads[$name]['categories'] = $categories;
         
         Utils\print_out( "<pre>".print_r($leads[$name], true)."</pre>" );
         // $csv .= '"' . implode('","', $leads[$name]) . "\"\n";

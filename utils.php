@@ -83,7 +83,45 @@ function isRelevantEmail($email) {
         )));
 }
 
-function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, $moreinfo, $scrapeClass) {
+
+function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$description, &$categories, $moreinfo, $scrapeClass) {
+    
+    /* $moreinfo_url = 'http://'.$_SERVER['HTTP_HOST'].'/'.$_SERVER['REQUEST_URI'];
+    $moreinfo_url.= 'moreinfo-scraper.php?moreinfo='.urlencode($moreinfo);
+
+    $curl = curl_init();
+    // Set some options - we are passing in a useragent too here
+    curl_setopt_array($curl, array(
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_URL => $moreinfo_url,
+        CURLOPT_USERAGENT => 'Simple Scraper PHP Application'
+    ));
+    // Send the request & save response to $resp
+    if (!$res = curl_exec($curl)) {
+        die( curl_error($curl) );
+    }
+    // Close request to clear up some resources
+    curl_close($curl);
+
+    $data = json_decode($res, true);
+    unset($curl);
+
+    if(isset($data['emails'])) {
+        if(is_string($data['emails'])) {
+            $data['emails'] = array($data['emails']);
+        }
+        if (count($data['emails']) > 0) {
+            $emails = array_merge($emails, $data['emails']);
+        }
+    }
+    
+    $location = $data['location'];
+    $address = $data['address'];
+    $phone = $data['phone'];
+    $description = $data['description'];
+    $categories = $data['categories']; */
+
+
 	if ($moreinfo) {
 		$source = getHTML($moreinfo);
 		$html = str_get_html($source);
@@ -96,7 +134,10 @@ function get_more_info_lead(&$emails, &$address, &$location, &$phone, &$descript
 			$address = call_user_func( array($scrapeClass, 'get_address'), $html);
 			$location = call_user_func( array($scrapeClass, 'get_location'), $html);
 			$phone = call_user_func( array($scrapeClass, 'get_phone'), $html);
-			$description = call_user_func( array($scrapeClass, 'get_description'), $html);
+			if($location!=null && $phone!=null) {
+				$description = call_user_func( array($scrapeClass, 'get_description'), $html);
+				$categories = call_user_func( array($scrapeClass, 'get_categories'), $html);
+			}
 
 			$html->clear();
 			unset($html);

@@ -22,9 +22,10 @@ class YellowpagesScraper {
         $endPage = isset($_REQUEST['to']) ? $_REQUEST['to'] : 1;
 
 
+        $jsonFile = "scraper-".$location."-".$search."-P".$startPage."-".$endPage.".json";
         $dataFileName = "scraper-".$location."-".$search.".txt";
         $dataFileContent = null;
-        if (!file_exists($dataFileName) ){
+        if (!file_exists($jsonFile) ){
             $data = "keyword:".$search."\n";
             $data.= "location:".$location."\n";
             $data.= "start:".$startPage."\n";
@@ -47,17 +48,10 @@ class YellowpagesScraper {
                 $requireEmails
             );
         } else {
-            //$dataFileContent = file_get_contents($dataFileName);
-            $jsonFile = "scraper-".$location."-".$search."-P".$startPage."-".$endPage.".json";
-            if(file_exists($jsonFile)) {
-                $jsonContent = file_get_contents($jsonFile);
-                header('Content-type: application/json');
-                echo $jsonContent;
-            } else {
-                echo json_encode(array("error"=>"JSON File not generated!"));
-            }
+            $jsonContent = file_get_contents($jsonFile);
+            header('Content-type: application/json');
+            echo $jsonContent;
             
-            //Utils\print_out("<pre>".print_r($jsonContent, true)."</pre>");
             return false;
         }
     }
@@ -188,5 +182,18 @@ class YellowpagesScraper {
     	}
     
     	return null;
+    }
+    
+    
+    public static function get_categories($rootNode) {
+    	$cats = $rootNode->find('.categories');
+    	$categories = array();
+    	if( !empty($cats) ) {
+    		$cat_links = $cats[1]->find('a');
+    		foreach ($cat_links as $cat_node) {
+    			$categories[] = $cat_node->innertext;
+    		}
+    	}
+    	return $categories;
     }
 }
