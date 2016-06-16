@@ -51,13 +51,13 @@ class Scraper {
         
         Utils\print_out("\n<br>".count($leads)." valid leads found!");
 
-        //if( defined('AJAX_QUERY') ) {
+        if( defined('AJAX_QUERY') && !empty($leads) ) {
             header('Content-type: application/json');
             $json = json_encode($leads);
             echo $json;
 
             file_put_contents($csvFilename.".json", $json, LOCK_EX);
-        //}
+        }
 
         if ($leads && count($leads) > 0) {
             // $csv = '"' . implode('","', array_keys(reset($leads))) . "\"\n" . $csv;
@@ -96,9 +96,10 @@ class Scraper {
     			'q' => $search
     	);
     	$entries = call_user_func(array($scrapeClass, 'scrapePage'), $url, $data);
+        
         if($entries!==null) {
             foreach($entries as $entry) {
-                if (self::parseEntry(
+                /*if (self::parseEntry(
                         $scrapeClass,
                         $csv,
                         $entry,
@@ -106,7 +107,19 @@ class Scraper {
                         $scannedArray,
                         $domainArray,
                         $requireEmails
-                        )) continue;
+                        )) continue;*/
+                
+                list($name, $link, $moreinfo) = $entry;
+                $name = $name ? trim($name) : null;
+                if( empty($name) ) {
+                    continue;
+                }
+
+                $leads[$name] = array(
+                    'name' => $name,
+                    'link' => $link,
+                    'moreinfo' => $moreinfo
+                );
             }
         }
     	

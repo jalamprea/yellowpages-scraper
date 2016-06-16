@@ -1,4 +1,5 @@
 <?php
+header("Access-Control-Allow-Origin: *");
 require_once('yellowpages-scraper.php');
 
 function scrapeMoreInfo($moreinfo) {
@@ -7,6 +8,8 @@ function scrapeMoreInfo($moreinfo) {
 	$html = str_get_html($source);
 
 	if ($html) {
+		$name = $_REQUEST['name'];
+
 		$yellowpageEmails = array_map(
 			function($element) { return str_ireplace('mailto:', '', $element->href); },
 			$html->find('.email-business')
@@ -30,6 +33,7 @@ function scrapeMoreInfo($moreinfo) {
 		unset($html);
 
 		$response = array(
+			"name"			=> $name,
 			"emails"		=> $emails,
 			"address"		=> $address,
 			"location"		=> $location,
@@ -37,6 +41,7 @@ function scrapeMoreInfo($moreinfo) {
 			"description"	=> $description,
 			"categories"	=> $categories
 		);
+		header('Content-type: application/json');
 		echo (json_encode($response));
 	}
 }
