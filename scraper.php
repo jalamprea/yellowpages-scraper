@@ -24,7 +24,7 @@ class Scraper {
         Utils\print_out("<br>Scraping $name...\n<br>Search: $search\n<br>Location: $location\n<br>");
 
         $threads = array();
-        for ($i = $startPage; $i <= $endPage; $i++) {
+        for ($i = $endPage; $i >= $startPage; $i--) {
             $t = self::scrapePage(
                 $scrapeClass,
                 $i,
