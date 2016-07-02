@@ -76,9 +76,10 @@ class YellowpagesScraper {
             $res = $html->find('.search-results');
         }
         foreach($res as $listing) {
-            $name = $listing->find('a.business-name', 0);
-            if($name)
-                $name = strip_tags($name->innertext);
+            $listing_name = $listing->find('a.business-name', 0);
+            $name = false;
+            if($listing_name)
+                $name = strip_tags($listing_name->innertext);
             else {
                 unset($listing);
                 continue;
@@ -87,7 +88,7 @@ class YellowpagesScraper {
             $link = $listing->find('.links a.track-visit-website', 0);
             $link = ($link && $link->href) ? $link : $listing->find('.links a.website-link', 0);
             
-            $moreinfo = $listing->find('.links a.track-more-info', 0);
+            $moreinfo = $listing_name; //$listing->find('.links a.business-name', 0);
             $moreinfo = $moreinfo ? $moreinfo : $listing->find('.links a.more-info-link', 0);
 
             if($link && $link->href) {
@@ -195,5 +196,20 @@ class YellowpagesScraper {
     		}
     	}
     	return $categories;
+    }
+
+
+     /**
+     *
+     * @param simple_html_dom_node $rootNode
+     * @return String phone if it's found, NULL if not.
+     */
+    public static function get_website($rootNode) {
+        $web = $rootNode->find('.custom-link');
+        if(!empty($web)) {
+            return $web[0]->href;
+        }
+    
+        return null;
     }
 }

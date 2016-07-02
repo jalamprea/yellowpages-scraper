@@ -10,23 +10,28 @@ function scrapeMoreInfo($moreinfo) {
 	if ($html) {
 		$name = $_REQUEST['name'];
 
-		$yellowpageEmails = array_map(
-			function($element) { return str_ireplace('mailto:', '', $element->href); },
-			$html->find('.email-business')
-		);
-		$emails = array();
-		if (isset($yellowpageEmails) && count($yellowpageEmails) > 0) {
-			$emails = array_merge($emails, $yellowpageEmails);
-		}
-
-		$address = call_user_func( array($scrapeClass, 'get_address'), $html);
 		$location = call_user_func( array($scrapeClass, 'get_location'), $html);
 		$phone = call_user_func( array($scrapeClass, 'get_phone'), $html);
+		
+		$address 	 = "";
 		$description = "";
-		$categories = array();
+		$website 	 = "";
+		$categories  = array();
+		$emails 	 = array();
+
 		if($location!=null && $phone!=null) {
+			$address 	 = call_user_func( array($scrapeClass, 'get_address'), $html);
 			$description = call_user_func( array($scrapeClass, 'get_description'), $html);
-			$categories = call_user_func( array($scrapeClass, 'get_categories'), $html);
+			$categories  = call_user_func( array($scrapeClass, 'get_categories'), $html);
+			$website 	 = call_user_func( array($scrapeClass, 'get_website'), $html);
+
+			$yellowpageEmails = array_map(
+				function($element) { return str_ireplace('mailto:', '', $element->href); },
+				$html->find('.email-business')
+			);
+			if (isset($yellowpageEmails) && count($yellowpageEmails) > 0) {
+				$emails = array_merge($emails, $yellowpageEmails);
+			}
 		}
 
 		$html->clear();
@@ -34,7 +39,8 @@ function scrapeMoreInfo($moreinfo) {
 
 		$response = array(
 			"name"			=> $name,
-			"emails"		=> $emails,
+			"email"			=> $emails,
+			"website"		=> $website,
 			"address"		=> $address,
 			"location"		=> $location,
 			"phone"			=> $phone,
