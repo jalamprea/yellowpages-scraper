@@ -121,7 +121,7 @@ class YellowpagesScraper {
     	$cs = $rootNode->find('.city-state');
     
     	if( !empty($st) && !empty($cs) ) {
-    		return $st[0]->innertext.' '.$cs[0]->innertext;
+    		return $st[0]->innertext.', '.$cs[0]->innertext;
     	}
     
     	return null;
